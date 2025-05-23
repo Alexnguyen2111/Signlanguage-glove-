@@ -1,0 +1,346 @@
+/* General Reset and Base Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #34495e; /* Dark blue-gray background from image */
+    color: #ecf0f1; 
+    line-height: 1.6;
+    font-size: 16px;
+    min-height: 100vh;
+    padding-top: 20px; 
+}
+
+.container {
+    width: 100%;
+    max-width: 1200px; /* Allow wider content, adjust as needed */
+    margin: 0 auto; /* Center the container */
+    padding: 0 15px;
+}
+
+header {
+    width: 100%;
+    text-align: center;
+    margin-bottom: 30px;
+    color: #1abc9c; 
+}
+
+header h1 {
+    font-size: 2.2em; 
+    font-weight: 400; /* Lighter font weight for header */
+}
+
+header h1 .fas {
+    margin-right: 12px;
+    font-size: 0.9em;
+}
+
+.main-content {
+    display: grid;
+    /* Create two columns of equal width, or allow auto-fit */
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); 
+    gap: 25px; 
+    width: 100%;
+    margin-bottom: 25px;
+}
+
+/* Panel Styling */
+.panel {
+    background-color: #2c3e50; /* Darker panel background from image */
+    padding: 20px 25px;
+    border-radius: 8px; /* Slightly less rounded */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    border: 1px solid #4a6572; /* Subtle border */
+    color: #ecf0f1;
+    /* Removed flex-basis, flex-grow, min-width as grid handles sizing for .main-content children */
+}
+
+.panel h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    font-size: 1.3em; /* Adjusted size */
+    color: #1abc9c; 
+    text-align: left;
+    border-bottom: 1px solid #1abc9c;
+    padding-bottom: 10px;
+    font-weight: 500;
+}
+.panel h2 .fas {
+    margin-right: 10px;
+    font-size: 0.9em;
+}
+
+/* Full-width panels for training and saved gestures */
+.training-panel-fullwidth, .saved-gestures-panel { 
+    background-color: #2c3e50;
+    padding: 20px 25px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    border: 1px solid #4a6572;
+    color: #ecf0f1;
+    width: 100%; /* Ensure it takes full width of its container (.container) */
+    margin-bottom: 25px; 
+    /* grid-column: 1 / -1; */ /* This would be used if these panels were direct children of .main-content grid */
+}
+
+/* JavaScript will control the display of these panels */
+.training-panel#trainingPanel, 
+.saved-gestures-panel#savedGesturesPanel { 
+    /* display: none; */ /* Initial state is set in HTML, JS toggles it */
+}
+
+
+/* Saved Gestures Panel Specifics */
+.saved-gestures-panel {
+    /* No specific margin-top needed if it flows after main-content */
+}
+#savedGesturesList {
+    list-style-type: none;
+    padding-left: 0;
+    max-height: 250px; 
+    overflow-y: auto;
+    background-color: rgba(255, 255, 255, 0.03);
+    border-radius: 4px;
+    padding: 10px;
+    margin-bottom: 15px;
+}
+#savedGesturesList li {
+    padding: 8px 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    color: #bdc3c7;
+    display: flex;
+    justify-content: space-between; 
+    align-items: center;
+}
+#savedGesturesList li:last-child {
+    border-bottom: none;
+}
+.btn-delete-gesture {
+    background-color: #c0392b; 
+    color: white;
+    border: none;
+    padding: 4px 8px; 
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.75em; 
+    margin-left: 10px;
+    line-height: 1; 
+}
+.btn-delete-gesture .fas {
+    margin-right: 0; 
+}
+.btn-delete-gesture:hover {
+    background-color: #a93226;
+}
+.btn-danger { 
+    background-color: #c0392b;
+    /* border-color: #a93226; */ /* No border on .btn by default */
+}
+.btn-danger:hover {
+    background-color: #a93226;
+    /* border-color: #922b21; */
+}
+
+
+/* Status Bars */
+.status-bar, .prediction-bar {
+    font-size: 1em;
+    margin: 10px 0 15px 0;
+    padding: 10px 15px;
+    background-color: rgba(255, 255, 255, 0.05); 
+    border-radius: 5px;
+    text-align: center;
+    min-height: 2.5em; 
+    line-height: 1.4;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+.prediction-bar {
+    font-weight: bold;
+    font-size: 1.15em; 
+    color: #1abc9c; 
+    background-color: rgba(26, 188, 156, 0.1);
+    border-color: rgba(26, 188, 156, 0.2);
+}
+.status-bar.success { background-color: rgba(46, 204, 113, 0.1); color: #2ecc71; border-color: rgba(46, 204, 113, 0.3); }
+.status-bar.warning { background-color: rgba(241, 196, 15, 0.1); color: #f1c40f; border-color: rgba(241, 196, 15, 0.3); }
+.status-bar.error   { background-color: rgba(231, 76, 60, 0.1); color: #e74c3c; border-color: rgba(231, 76, 60, 0.3); }
+.status-bar.info    { background-color: rgba(52, 152, 219, 0.1); color: #3498db; border-color: rgba(52, 152, 219, 0.3); }
+
+
+/* Button Styling */
+.btn {
+    display: flex; 
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 11px 15px; 
+    margin: 10px 0;
+    background-color: #1abc9c; 
+    color: #ffffff;
+    border: none;
+    border-radius: 5px; 
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 1em; 
+    transition: background-color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
+    text-align: center;
+}
+.btn .fas {
+    margin-right: 10px; 
+}
+.btn:hover {
+    background-color: #16a085; 
+    box-shadow: 0 2px 7px rgba(0,0,0,0.2);
+}
+.btn:active {
+    transform: translateY(1px);
+    background-color: #138a72;
+}
+.btn.muted { background-color: #e74c3c; }
+.btn.muted:hover { background-color: #c0392b; }
+
+/* Sensor Readings Display */
+.read-values {
+    margin-top: 15px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(236, 240, 241, 0.08);
+}
+.sensor-grid {
+    display: grid;
+    grid-template-columns: auto 1fr; 
+    gap: 5px 10px; 
+    font-size: 0.9em;
+    margin-bottom: 12px;
+    align-items: center;
+}
+.sensor-grid div:nth-child(odd) { 
+    text-align: left;
+    color: #bdc3c7; 
+    display: flex;
+    align-items: center;
+}
+.sensor-grid div:nth-child(odd) .fas {
+    margin-right: 6px;
+    width: 18px; 
+    text-align: center;
+    color: #7f8c8d; 
+}
+.sensor-grid div:nth-child(even) { 
+    font-weight: bold;
+    color: #ecf0f1;
+    min-width: 40px;
+    background-color: rgba(0,0,0,0.15);
+    padding: 4px 8px;
+    border-radius: 4px;
+    text-align: right;
+}
+.pinky-finger  { color: #e74c3c; } 
+.ring-finger   { color: #f1c40f; } 
+.middle-finger { color: #2ecc71; } 
+.index-finger  { color: #3498db; } 
+.thumb-finger  { color: #9b59b6; } 
+
+
+.imu-values div {
+    margin-top: 8px;
+    font-size: 0.9em;
+    color: #bdc3c7;
+    display: flex;
+    align-items: center;
+}
+.imu-values div .fas {
+    margin-right: 6px;
+    color: #7f8c8d;
+}
+.imu-values span {
+    font-weight: bold;
+    color: #ecf0f1;
+    margin-left: 4px;
+    background-color: rgba(0,0,0,0.15);
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+/* Training Panel Specifics */
+.training-panel-fullwidth p { 
+    font-size: 0.95em;
+    margin-bottom: 15px;
+    line-height: 1.5;
+    color: #bdc3c7;
+}
+.training-panel-fullwidth label { 
+    display: block;
+    margin-top: 12px;
+    margin-bottom: 5px;
+    font-weight: 500;
+    color: #1abc9c;
+    font-size: 1em;
+}
+.training-panel-fullwidth input[type="text"] { 
+    width: 100%;
+    padding: 10px 14px;
+    margin-bottom: 15px;
+    border-radius: 5px;
+    border: 1px solid #7f8c8d; 
+    background-color: #ecf0f1; 
+    color: #2c3e50; 
+    font-size: 1em;
+}
+.training-panel-fullwidth input[type="text"]:focus { 
+    outline: none;
+    border-color: #1abc9c;
+    box-shadow: 0 0 0 3px rgba(26, 188, 156, 0.25);
+}
+#trainingFeedback.success { color: #2ecc71; font-weight: bold; }
+#trainingFeedback.error { color: #e74c3c; font-weight: bold; }
+#trainingFeedback.warning { color: #f1c40f; font-weight: bold; }
+#trainingFeedback.info { color: #3498db; font-weight: bold; }
+
+
+/* Footer */
+footer {
+    width: 100%;
+    text-align: center;
+    margin-top: 30px;
+    padding: 20px 0;
+    color: rgba(236, 240, 241, 0.4);
+    font-size: 0.8em;
+    border-top: 1px solid rgba(236, 240, 241, 0.08);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    body {
+        padding-top: 10px;
+    }
+    .container {
+        padding: 0 10px;
+    }
+    header h1 {
+        font-size: 1.8em;
+    }
+    .main-content {
+        grid-template-columns: 1fr; /* Stack control and sensor panels */
+    }
+    .panel { /* This applies to all panels including training and saved gestures */
+        width: 100%; 
+        margin-bottom: 20px;
+    }
+    /* JavaScript will handle display toggle for these panels */
+    .training-panel#trainingPanel, 
+    .saved-gestures-panel#savedGesturesPanel { 
+        /* display: none; is set inline in HTML initially */
+    }
+}
+
+@media (max-width: 480px) {
+    body { font-size: 14px; }
+    .panel h2 { font-size: 1.2em; }
+    .btn { padding: 10px 15px; font-size: 0.9em; }
+    .prediction-bar { font-size: 1.05em; }
+}

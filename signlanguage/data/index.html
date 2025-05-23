@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trình Dịch Ngôn Ngữ Ký Hiệu Thông Minh</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-sign-language"></i> Trình Dịch Ngôn Ngữ Ký Hiệu</h1>
+        </header>
+
+        <main class="main-content">
+            <div class="panel control-panel">
+                <h2><i class="fas fa-cogs"></i> Bảng Điều Khiển</h2>
+                <div id="systemStatus" class="status-bar">Trạng thái: Đang khởi tạo...</div>
+                <div id="predictionDisplay" class="prediction-bar">Dự đoán: ---</div>
+                
+                <button class="btn" id="predictBtn"><i class="fas fa-play-circle"></i> Bắt đầu Dự đoán</button>
+                <button class="btn" id="resetGyroBtn"><i class="fas fa-undo"></i> Đặt lại Gyro</button> 
+                <button class="btn" id="muteBtn"><i class="fas fa-volume-mute"></i> Tắt tiếng</button>
+                <button class="btn" id="trainingToggleBtn"><i class="fas fa-edit"></i> Hiện Bảng Huấn luyện</button>
+                <button class="btn" id="manageGesturesToggleBtn"><i class="fas fa-list-alt"></i> Hiện Quản lý Cử Chỉ</button> 
+            </div>
+
+            <div class="panel sensor-readings-panel">
+                <h2><i class="fas fa-tachometer-alt"></i> Thông số Cảm biến</h2>
+                <div class="sensor-grid">
+                    <div><i class="fas fa-hand-paper" style="color: #f39c12;"></i> Cái:</div><div id="flexPinky_val">0.00</div>
+                    <div><i class="fas fa-hand-paper" style="color: #e74c3c;"></i> Giữa:</div><div id="flexRing_val">0.00</div>
+                    <div><i class="fas fa-hand-paper" style="color: #2ecc71;"></i> Trỏ:</div><div id="flexMiddle_val">0.00</div>
+                    <div><i class="fas fa-hand-paper" style="color: #3498db;"></i> Áp út:</div><div id="flexIndex_val">0.00</div>
+                    <div><i class="fas fa-thumbs-up" style="color: #9b59b6;"></i> Ngón út:</div><div id="flexThumb_val">0.00</div>
+                </div>
+                <div class="imu-values">
+                    <div><i class="fas fa-sync-alt"></i> Gyro (X,Y,Z): <span id="gyroX_val">0.00</span>, <span id="gyroY_val">0.00</span>, <span id="gyroZ_val">0.00</span></div>
+                    <div><i class="fas fa-running"></i> Accel (X,Y,Z): <span id="accelX_val">0.00</span>, <span id="accelY_val">0.00</span>, <span id="accelZ_val">0.00</span></div>
+                </div>
+            </div>
+        </main>
+            
+        <div class="panel training-panel-fullwidth" id="trainingPanel" style="display: none;">
+            <h2><i class="fas fa-graduation-cap"></i> Chế độ Huấn luyện</h2>
+            <p>Nhập nhãn (tiếng Việt) cho cử chỉ bạn muốn ghi. Sau đó nhấp "Bắt đầu Ghi".</p>
+            <label for="gestureInput">Nhãn Cử chỉ:</label>
+            <input type="text" id="gestureInput" placeholder="Ví dụ: Xin chào, Cảm ơn">
+            <button class="btn" id="startTrainingBtn"><i class="fas fa-video"></i> Bắt đầu Ghi Cử chỉ</button>
+            <div id="trainingFeedback" class="status-bar">Sẵn sàng huấn luyện.</div>
+        </div>
+
+        <div class="panel saved-gestures-panel" id="savedGesturesPanel" style="display: none;">
+             <h2><i class="fas fa-save"></i> Các Cử Chỉ Đã Lưu</h2>
+             <ul id="savedGesturesList">
+                 <li>Nhấn "Làm mới danh sách" để xem.</li>
+             </ul>
+             <button class="btn" id="refreshSavedGesturesBtn"><i class="fas fa-sync-alt"></i> Làm mới Danh sách</button>
+             <button class="btn btn-danger" id="deleteAllGesturesBtn"><i class="fas fa-trash-alt"></i> Xóa Tất Cả Cử Chỉ</button>
+             <div id="deleteStatus" class="status-bar" style="display: none;"></div>
+        </div>
+
+        <footer>
+            <p>&copy; 2025 Trình Dịch Ngôn Ngữ Ký Hiệu Thông Minh | Tấn </p>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // UI Elements
+            const predictBtn = document.getElementById('predictBtn');
+            const resetGyroBtn = document.getElementById('resetGyroBtn'); 
+            const muteBtn = document.getElementById('muteBtn');
+            const trainingToggleBtn = document.getElementById('trainingToggleBtn');
+            const manageGesturesToggleBtn = document.getElementById('manageGesturesToggleBtn');
+            
+            const trainingPanel = document.getElementById('trainingPanel');
+            const gestureInput = document.getElementById('gestureInput');
+            const startTrainingBtn = document.getElementById('startTrainingBtn');
+            
+            const predictionDisplay = document.getElementById('predictionDisplay');
+            const systemStatusDisplay = document.getElementById('systemStatus');
+            const trainingFeedbackDisplay = document.getElementById('trainingFeedback');
+
+            const savedGesturesPanel = document.getElementById('savedGesturesPanel');
+            const savedGesturesList = document.getElementById('savedGesturesList');
+            const refreshSavedGesturesBtn = document.getElementById('refreshSavedGesturesBtn');
+            const deleteAllGesturesBtn = document.getElementById('deleteAllGesturesBtn');
+            const deleteStatusDiv = document.getElementById('deleteStatus');
+
+            // Sensor value display elements
+            const flexPinkyVal = document.getElementById('flexPinky_val');
+            const flexRingVal = document.getElementById('flexRing_val');
+            const flexMiddleVal = document.getElementById('flexMiddle_val');
+            const flexIndexVal = document.getElementById('flexIndex_val');
+            const flexThumbVal = document.getElementById('flexThumb_val');
+            const gyroXVal = document.getElementById('gyroX_val');
+            const gyroYVal = document.getElementById('gyroY_val');
+            const gyroZVal = document.getElementById('gyroZ_val');
+            const accelXVal = document.getElementById('accelX_val');
+            const accelYVal = document.getElementById('accelY_val');
+            const accelZVal = document.getElementById('accelZ_val');
+
+            let isMuted = false;
+
+            // --- Event Listeners for Buttons ---
+
+            if (predictBtn) {
+                predictBtn.addEventListener('click', function() {
+                    systemStatusDisplay.textContent = "Trạng thái: Yêu cầu dự đoán...";
+                    systemStatusDisplay.className = 'status-bar warning';
+                    fetch('/predict')
+                        .then(response => {
+                            if (!response.ok) throw new Error(`Lỗi HTTP! ${response.status}`);
+                            return response.text();
+                        })
+                        .then(data => console.log("Yêu cầu dự đoán:", data))
+                        .catch(error => {
+                            console.error("Lỗi bắt đầu dự đoán:", error);
+                            systemStatusDisplay.textContent = "Trạng thái: Lỗi yêu cầu dự đoán.";
+                            systemStatusDisplay.className = 'status-bar error';
+                            predictionDisplay.textContent = "Dự đoán: ---";
+                        });
+                });
+            }
+
+            if (resetGyroBtn) { 
+                resetGyroBtn.addEventListener('click', function() {
+                    systemStatusDisplay.textContent = "Trạng thái: Đang đặt lại Gyro...";
+                    systemStatusDisplay.className = 'status-bar info';
+                    fetch('/reset') 
+                        .then(response => {
+                            if (!response.ok) throw new Error(`Lỗi HTTP khi reset ESP32! ${response.status}`);
+                            return response.text();
+                        })
+                        .then(data => {
+                            console.log("Phản hồi từ ESP32 /reset:", data);
+                            systemStatusDisplay.textContent = "Trạng thái: Gyro đã đặt lại trên thiết bị.";
+                            systemStatusDisplay.className = 'status-bar success';
+                            gyroXVal.textContent = "0.00"; 
+                            gyroYVal.textContent = "0.00";
+                            gyroZVal.textContent = "0.00";
+                        })
+                        .catch(error => {
+                            console.error("Lỗi khi thực hiện reset gyro:", error);
+                            systemStatusDisplay.textContent = "Trạng thái: Lỗi khi đặt lại gyro.";
+                            systemStatusDisplay.className = 'status-bar error';
+                        });
+                });
+            }
+
+            if (muteBtn) {
+                muteBtn.addEventListener('click', function() {
+                    isMuted = !isMuted;
+                    muteBtn.innerHTML = isMuted ? '<i class="fas fa-volume-up"></i> Bật tiếng' : '<i class="fas fa-volume-mute"></i> Tắt tiếng';
+                    muteBtn.classList.toggle('muted', isMuted);
+                    if (isMuted && window.speechSynthesis && speechSynthesis.speaking) {
+                        speechSynthesis.cancel();
+                    }
+                    console.log(isMuted ? "TTS Tắt" : "TTS Bật");
+                });
+            }
+            
+            if (startTrainingBtn) {
+                startTrainingBtn.addEventListener('click', function() {
+                    const label = gestureInput.value.trim();
+                    if (!label) {
+                        trainingFeedbackDisplay.textContent = "Vui lòng nhập nhãn cử chỉ.";
+                        trainingFeedbackDisplay.className = 'status-bar warning';
+                        gestureInput.focus();
+                        return;
+                    }
+                    if (label.includes(',')) {
+                        trainingFeedbackDisplay.textContent = "Nhãn không được chứa dấu phẩy.";
+                         trainingFeedbackDisplay.className = 'status-bar error';
+                        return;
+                    }
+                    trainingFeedbackDisplay.textContent = `Yêu cầu huấn luyện: ${label}...`;
+                    trainingFeedbackDisplay.className = 'status-bar info';
+                    fetch(`/train?label=${encodeURIComponent(label)}`)
+                        .then(response => {
+                            if (!response.ok) throw new Error(`Lỗi HTTP! ${response.status}: ${response.statusText}`);
+                            return response.text();
+                        })
+                        .then(data => console.log("Phản hồi huấn luyện:", data))
+                        .catch(error => {
+                            console.error('Lỗi bắt đầu huấn luyện:', error);
+                            trainingFeedbackDisplay.textContent = `Lỗi: ${error.message}`;
+                            trainingFeedbackDisplay.className = 'status-bar error';
+                        });
+                });
+            }
+
+            function fetchAndDisplaySavedGestures() {
+                savedGesturesList.innerHTML = '<li><i class="fas fa-spinner fa-spin"></i> Đang tải danh sách...</li>';
+                fetch('/get-labels')
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`Lỗi HTTP! ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(labels => {
+                        savedGesturesList.innerHTML = ''; 
+                        if (labels && labels.length > 0) {
+                            labels.sort(); 
+                            labels.forEach(label => {
+                                const listItem = document.createElement('li');
+                                listItem.textContent = label;
+                                
+                                const deleteBtn = document.createElement('button');
+                                deleteBtn.innerHTML = '<i class="fas fa-trash-alt"></i>';
+                                deleteBtn.classList.add('btn-delete-gesture');
+                                deleteBtn.title = `Xóa cử chỉ "${label}"`;
+                                deleteBtn.onclick = function() {
+                                    if (confirm(`Bạn có chắc chắn muốn xóa cử chỉ "${label}" không? Tất cả dữ liệu huấn luyện cho cử chỉ này sẽ bị mất.`)) {
+                                        deleteStatusDiv.textContent = `Đang xóa "${label}"...`;
+                                        deleteStatusDiv.className = 'status-bar info';
+                                        deleteStatusDiv.style.display = 'block';
+                                        fetch(`/delete-gesture?label=${encodeURIComponent(label)}`)
+                                            .then(res => res.json())
+                                            .then(data => {
+                                                if (data.success) {
+                                                    deleteStatusDiv.textContent = data.message || `Đã xóa "${label}".`;
+                                                    deleteStatusDiv.className = 'status-bar success';
+                                                    fetchAndDisplaySavedGestures(); 
+                                                } else {
+                                                    deleteStatusDiv.textContent = `Lỗi: ${data.error || 'Không thể xóa.'}`;
+                                                    deleteStatusDiv.className = 'status-bar error';
+                                                }
+                                                setTimeout(() => { deleteStatusDiv.style.display = 'none'; }, 4000);
+                                            })
+                                            .catch(err => {
+                                                console.error("Lỗi khi xóa cử chỉ:", err);
+                                                deleteStatusDiv.textContent = `Lỗi kết nối khi xóa.`;
+                                                deleteStatusDiv.className = 'status-bar error';
+                                                setTimeout(() => { deleteStatusDiv.style.display = 'none'; }, 4000);
+                                            });
+                                    }
+                                };
+                                listItem.appendChild(deleteBtn);
+                                savedGesturesList.appendChild(listItem);
+                            });
+                        } else {
+                            savedGesturesList.innerHTML = '<li>Chưa có cử chỉ nào được lưu.</li>';
+                        }
+                    })
+                    .catch(error => {
+                        console.error("Lỗi khi lấy danh sách nhãn:", error);
+                        savedGesturesList.innerHTML = `<li>Lỗi tải danh sách: ${error.message}</li>`;
+                    });
+            }
+
+            if (trainingToggleBtn) {
+                trainingToggleBtn.addEventListener('click', function() {
+                    const isTrainingHidden = trainingPanel.style.display === 'none' || trainingPanel.style.display === '';
+                    if (isTrainingHidden) {
+                        trainingPanel.style.display = 'block';
+                        savedGesturesPanel.style.display = 'none'; 
+                        trainingToggleBtn.innerHTML = '<i class="fas fa-minus-circle"></i> Ẩn Bảng Huấn luyện';
+                        manageGesturesToggleBtn.innerHTML = '<i class="fas fa-list-alt"></i> Hiện Quản lý Cử Chỉ';
+                    } else { 
+                        trainingPanel.style.display = 'none';
+                        trainingToggleBtn.innerHTML = '<i class="fas fa-edit"></i> Hiện Bảng Huấn luyện';
+                    }
+                });
+            }
+            
+            if (manageGesturesToggleBtn) {
+                manageGesturesToggleBtn.addEventListener('click', function() {
+                    const isManageHidden = savedGesturesPanel.style.display === 'none' || savedGesturesPanel.style.display === '';
+                    if (isManageHidden) {
+                        savedGesturesPanel.style.display = 'block';
+                        trainingPanel.style.display = 'none'; 
+                        manageGesturesToggleBtn.innerHTML = '<i class="fas fa-minus-circle"></i> Ẩn Quản lý Cử Chỉ';
+                        trainingToggleBtn.innerHTML = '<i class="fas fa-edit"></i> Hiện Bảng Huấn luyện';
+                        fetchAndDisplaySavedGestures(); 
+                    } else { 
+                        savedGesturesPanel.style.display = 'none';
+                        manageGesturesToggleBtn.innerHTML = '<i class="fas fa-list-alt"></i> Hiện Quản lý Cử Chỉ';
+                    }
+                });
+            }
+
+            if(refreshSavedGesturesBtn){
+                refreshSavedGesturesBtn.addEventListener('click', fetchAndDisplaySavedGestures);
+            }
+
+            if (deleteAllGesturesBtn) {
+                deleteAllGesturesBtn.addEventListener('click', function() {
+                    if (confirm("BẠN CÓ CHẮC CHẮN MUỐN XÓA TẤT CẢ CÁC CỬ CHỈ ĐÃ HUẤN LUYỆN KHÔNG? HÀNH ĐỘNG NÀY KHÔNG THỂ HOÀN TÁC!")) {
+                        deleteStatusDiv.textContent = 'Đang xóa tất cả cử chỉ...';
+                        deleteStatusDiv.className = 'status-bar warning';
+                        deleteStatusDiv.style.display = 'block';
+                        fetch('/delete-all-gestures')
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.success) {
+                                    deleteStatusDiv.textContent = data.message || 'Đã xóa tất cả cử chỉ.';
+                                    deleteStatusDiv.className = 'status-bar success';
+                                    fetchAndDisplaySavedGestures(); 
+                                } else {
+                                    deleteStatusDiv.textContent = `Lỗi: ${data.error || 'Không thể xóa.'}`;
+                                    deleteStatusDiv.className = 'status-bar error';
+                                }
+                                setTimeout(() => { deleteStatusDiv.style.display = 'none'; }, 4000);
+                            })
+                            .catch(error => {
+                                console.error("Lỗi khi xóa tất cả cử chỉ:", error);
+                                deleteStatusDiv.textContent = 'Lỗi kết nối khi xóa tất cả.';
+                                deleteStatusDiv.className = 'status-bar error';
+                                setTimeout(() => { deleteStatusDiv.style.display = 'none'; }, 4000);
+                            });
+                    }
+                });
+            }
+
+            // --- Server-Sent Events (SSE) Handling ---
+            if (!!window.EventSource) {
+                var sourceUrl = '';
+                if (window.location.protocol === "file:") {
+                    const espIP = "192.168.1.100"; // Fallback IP, ideally get from user or config
+                    sourceUrl = `http://${espIP}/events`;
+                    console.warn("Trang được tải qua file://. Đang thử EventSource với IP giả định: " + sourceUrl + ". Vui lòng truy cập qua địa chỉ IP của ESP32.");
+                } else {
+                    sourceUrl = window.location.origin + '/events';
+                }
+                console.log("Đang thử kết nối EventSource tới:", sourceUrl);
+                
+                var source;
+                try {
+                    source = new EventSource(sourceUrl);
+                } catch (e) {
+                    console.error("Lỗi khởi tạo EventSource:", e, "URL đã thử:", sourceUrl);
+                    systemStatusDisplay.textContent = "Trạng thái: Lỗi kết nối SSE.";
+                    systemStatusDisplay.className = 'status-bar error';
+                    alert(`Không thể kết nối Server-Sent Events tới: ${sourceUrl}. Hãy đảm bảo ESP32 đang chạy và bạn đã nhập đúng địa chỉ IP của nó vào trình duyệt.`);
+                    return; 
+                }
+                
+                source.onopen = function() {
+                    console.log("SSE: Kết nối mở.");
+                    systemStatusDisplay.textContent = "Trạng thái: Đã kết nối với găng tay.";
+                    systemStatusDisplay.className = 'status-bar success';
+                };
+
+                source.onerror = function() {
+                    console.error("SSE: Lỗi kết nối với " + sourceUrl);
+                    if (source.readyState === EventSource.CLOSED) {
+                         systemStatusDisplay.textContent = "Trạng thái: Mất kết nối. Thử tải lại trang.";
+                    } else {
+                        systemStatusDisplay.textContent = "Trạng thái: Mất kết nối. Đang thử lại...";
+                    }
+                    systemStatusDisplay.className = 'status-bar error';
+                };
+
+                source.addEventListener('flex_sensor', function(e) {
+                    try {
+                        const data = JSON.parse(e.data);
+                        flexPinkyVal.textContent = data.Pinky !== undefined ? parseFloat(data.Pinky).toFixed(2) : 'N/A';
+                        flexRingVal.textContent = data.Ring !== undefined ? parseFloat(data.Ring).toFixed(2) : 'N/A';
+                        flexMiddleVal.textContent = data.Middle !== undefined ? parseFloat(data.Middle).toFixed(2) : 'N/A';
+                        flexIndexVal.textContent = data.Index !== undefined ? parseFloat(data.Index).toFixed(2) : 'N/A';
+                        flexThumbVal.textContent = data.thumb !== undefined ? parseFloat(data.thumb).toFixed(2) : 'N/A';
+                        gyroXVal.textContent = data.gyroX !== undefined ? parseFloat(data.gyroX).toFixed(2) : 'N/A';
+                        gyroYVal.textContent = data.gyroY !== undefined ? parseFloat(data.gyroY).toFixed(2) : 'N/A';
+                        gyroZVal.textContent = data.gyroZ !== undefined ? parseFloat(data.gyroZ).toFixed(2) : 'N/A';
+                        accelXVal.textContent = data.accX !== undefined ? parseFloat(data.accX).toFixed(2) : 'N/A';
+                        accelYVal.textContent = data.accY !== undefined ? parseFloat(data.accY).toFixed(2) : 'N/A';
+                        accelZVal.textContent = data.accZ !== undefined ? parseFloat(data.accZ).toFixed(2) : 'N/A';
+                        
+                    } catch (error) { /* console.error("Lỗi flex_sensor:", error, e.data); */ }
+                }, false);
+
+                source.addEventListener('prediction', function(e) {
+                    try {
+                        const data = JSON.parse(e.data);
+                        let textToSpeak = data.pred || "Không rõ"; 
+                        predictionDisplay.textContent = `Dự đoán: ${textToSpeak} (${(data.confidence * 100).toFixed(0)}%)`;
+                        if (!isMuted && textToSpeak !== "Không rõ" && textToSpeak.toLowerCase() !== "at rest" && textToSpeak.toLowerCase() !== " nghỉ") {
+                            speakText(textToSpeak);
+                        }
+                        systemStatusDisplay.textContent = "Trạng thái: Đã nhận dự đoán.";
+                        systemStatusDisplay.className = 'status-bar success';
+                    } catch (error) {
+                        console.error("Lỗi dữ liệu dự đoán:", error, e.data);
+                        predictionDisplay.textContent = "Dự đoán: Lỗi.";
+                         systemStatusDisplay.className = 'status-bar error';
+                    }
+                }, false);
+
+                source.addEventListener('training_update', function(e) {
+                    try {
+                        const data = JSON.parse(e.data);
+                        if (data.status === "saved" && data.label) {
+                            trainingFeedbackDisplay.textContent = `Đã lưu '${data.label}'!`;
+                            trainingFeedbackDisplay.className = 'status-bar success';
+                            gestureInput.value = "";
+                             if (savedGesturesPanel.style.display === 'block') { 
+                                fetchAndDisplaySavedGestures();
+                            }
+                        } else if (data.status === "error_saving" && data.label) {
+                            trainingFeedbackDisplay.textContent = `Lỗi lưu '${data.label}': ${data.message || ''}`;
+                            trainingFeedbackDisplay.className = 'status-bar error';
+                        } else {
+                            trainingFeedbackDisplay.textContent = data.message || "Cập nhật huấn luyện.";
+                            trainingFeedbackDisplay.className = 'status-bar info';
+                        }
+                        setTimeout(() => {
+                            trainingFeedbackDisplay.textContent = "Sẵn sàng huấn luyện.";
+                            trainingFeedbackDisplay.className = 'status-bar';
+                        } , 4000);
+                    } catch (error) { console.error("Lỗi training_update:", error, e.data); }
+                }, false);
+                
+                source.addEventListener('system_status', function(e) {
+                    try {
+                        const data = JSON.parse(e.data);
+                        let statusMessage = "Trạng thái: ";
+                        systemStatusDisplay.className = 'status-bar'; 
+
+                        if (data.status === "capturing_prediction") {
+                            statusMessage += "Đang nghe cử chỉ...";
+                            predictionDisplay.textContent = "Dự đoán: Đang thực hiện...";
+                            systemStatusDisplay.classList.add('warning');
+                        } else if (data.status === "capturing_training" && data.label) {
+                            statusMessage += `Đang ghi '${data.label}'...`;
+                            trainingFeedbackDisplay.textContent = `Ghi '${data.label}'... Thực hiện cử chỉ.`;
+                            trainingFeedbackDisplay.className = 'status-bar warning';
+                            systemStatusDisplay.classList.add('warning');
+                        } else if (data.status === "idle_after_training") {
+                            statusMessage += "Rảnh. Huấn luyện xong.";
+                            systemStatusDisplay.classList.add('success');
+                        } else {
+                            statusMessage += data.status || "Đang cập nhật...";
+                             systemStatusDisplay.classList.add('info');
+                        }
+                        systemStatusDisplay.textContent = statusMessage;
+                    } catch (error) { console.error("Lỗi system_status:", error, e.data); }
+                }, false);
+
+                source.addEventListener('low_confidence', function(e) {
+                    try {
+                        const data = JSON.parse(e.data);
+                        console.log("Received low_confidence event data:", data); 
+                        let predictedLabel = (data.pred && data.pred.trim() !== "") ? data.pred : "Không rõ";
+                        predictionDisplay.textContent = `Dự đoán: ${predictedLabel} (Tin cậy thấp: ${ (data.confidence * 100).toFixed(0) }%)`;
+                        systemStatusDisplay.textContent = "Trạng thái: Dự đoán (tin cậy thấp).";
+                        systemStatusDisplay.classList.add('warning');
+                    } catch (error) { console.error("Lỗi low_confidence:", error, e.data); }
+                }, false);
+
+                source.addEventListener('prediction_error', function(e) {
+                     try {
+                        const data = JSON.parse(e.data);
+                        predictionDisplay.textContent = `Lỗi Dự đoán: ${data.error || "Không rõ"}`;
+                        systemStatusDisplay.textContent = "Trạng thái: Lỗi dự đoán.";
+                        systemStatusDisplay.classList.add('error');
+                    } catch (error) { console.error("Lỗi prediction_error:", error, e.data); }
+                }, false);
+
+            } else {
+                console.error("Trình duyệt không hỗ trợ EventSource.");
+                systemStatusDisplay.textContent = "Trạng thái: Trình duyệt không hỗ trợ cập nhật trực tiếp.";
+                alert("Trình duyệt của bạn không hỗ trợ Server-Sent Events. Cập nhật thời gian thực sẽ không hoạt động.");
+            }
+
+            function speakText(text) {
+                if (isMuted || typeof SpeechSynthesisUtterance === 'undefined' || !window.speechSynthesis) return;
+                if (speechSynthesis.speaking) speechSynthesis.cancel();
+                
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'vi-VN';
+                utterance.pitch = 1.0; utterance.rate = 1.0; utterance.volume = 0.9;
+                
+                const voices = speechSynthesis.getVoices();
+                if (voices.length === 0 && speechSynthesis.onvoiceschanged !== undefined) { 
+                    speechSynthesis.onvoiceschanged = function() {
+                        const updatedVoices = speechSynthesis.getVoices();
+                        const vietnameseVoice = updatedVoices.find(voice => voice.lang === 'vi-VN');
+                        if (vietnameseVoice) utterance.voice = vietnameseVoice;
+                        else console.warn("Không tìm thấy giọng đọc tiếng Việt (sau khi voiceschanged), sử dụng giọng mặc định cho vi-VN.");
+                        speechSynthesis.speak(utterance);
+                        speechSynthesis.onvoiceschanged = null;
+                    };
+                } else if (voices.length > 0) {
+                    const vietnameseVoice = voices.find(voice => voice.lang === 'vi-VN');
+                    if (vietnameseVoice) utterance.voice = vietnameseVoice;
+                    else console.warn("Không tìm thấy giọng đọc tiếng Việt, sử dụng giọng mặc định cho vi-VN.");
+                    speechSynthesis.speak(utterance);
+                } else {
+                    console.warn("Giọng nói chưa tải và onvoiceschanged không được hỗ trợ/kích hoạt. Thử phát giọng mặc định.");
+                    speechSynthesis.speak(utterance);
+                }
+            }
+            
+            if (window.speechSynthesis) {
+                 speechSynthesis.getVoices(); 
+                 if (speechSynthesis.onvoiceschanged !== undefined) {
+                    speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
+                 }
+            }
+        });
+    </script>
+</body>
+</html>
